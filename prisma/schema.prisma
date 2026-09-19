@@ -1,0 +1,15 @@
+// Prisma schema for the production data layer. Verification documents are represented only by a private storage key.
+generator client { provider = "prisma-client-js" }
+datasource db { provider = "postgresql" url = env("DATABASE_URL") }
+enum Role { USER SELLER ADMIN SUPER_ADMIN }
+enum VerificationStatus { PENDING APPROVED REJECTED MORE_INFO }
+enum OrderStatus { PENDING ACCEPTED PREPARING READY OUT_FOR_DELIVERY COMPLETED CANCELLED DISPUTED FLAGGED }
+model User { id String @id @default(cuid()) email String @unique passwordHash String? name String role Role @default(USER) createdAt DateTime @default(now()) profile Profile? verifications Verification[] listings FoodListing[] buyerOrders Order[] @relation("buyer") sellerOrders Order[] @relation("seller") reviews Review[] messages Message[] notifications Notification[] }
+model Profile { id String @id @default(cuid()) userId String @unique occupation String? bio String? approximateArea String? avatarUrl String? user User @relation(fields:[userId], references:[id]) }
+model Verification { id String @id @default(cuid()) userId String type String status VerificationStatus @default(PENDING) documentType String? privateStorageKey String? createdAt DateTime @default(now()) user User @relation(fields:[userId], references:[id]) }
+model FoodListing { id String @id @default(cuid()) sellerId String name String description String price Int quantity Int dietary String cuisine String ingredients String allergens String preparationInfo String pickupArea String deliveryAvailable Boolean @default(false) published Boolean @default(false) flagged Boolean @default(false) imageUrl String? createdAt DateTime @default(now()) seller User @relation(fields:[sellerId], references:[id]) orders Order[] reviews Review[] }
+model Order { id String @id @default(cuid()) buyerId String sellerId String listingId String quantity Int total Int status OrderStatus @default(PENDING) safetyAcknowledged Boolean @default(false) createdAt DateTime @default(now()) buyer User @relation("buyer",fields:[buyerId],references:[id]) seller User @relation("seller",fields:[sellerId],references:[id]) listing FoodListing @relation(fields:[listingId],references:[id]) }
+model Review { id String @id @default(cuid()) listingId String buyerId String rating Int comment String? createdAt DateTime @default(now()) listing FoodListing @relation(fields:[listingId],references:[id]) buyer User @relation(fields:[buyerId],references:[id]) }
+model Message { id String @id @default(cuid()) userId String body String createdAt DateTime @default(now()) user User @relation(fields:[userId],references:[id]) }
+model Notification { id String @id @default(cuid()) userId String title String body String read Boolean @default(false) createdAt DateTime @default(now()) user User @relation(fields:[userId],references:[id]) }
+model SafetyReport { id String @id @default(cuid()) listingId String reason String details String? serious Boolean @default(false) createdAt DateTime @default(now()) }
